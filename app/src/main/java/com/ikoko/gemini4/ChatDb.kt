@@ -31,7 +31,7 @@ class ChatDb(context: Context) : SQLiteOpenHelper(context, "gikoko_gemini.db", n
     fun sessions(limit: Int = 100): List<ChatSession> {
         val rows = mutableListOf<ChatSession>()
         readableDatabase.rawQuery(
-            "SELECT session_id, content, MAX(created_at), COUNT(*) FROM messages GROUP BY session_id ORDER BY MAX(created_at) DESC LIMIT ?",
+            "SELECT m.session_id, m.content, m.created_at, (SELECT COUNT(*) FROM messages c WHERE c.session_id=m.session_id) FROM messages m WHERE m.id=(SELECT MAX(x.id) FROM messages x WHERE x.session_id=m.session_id) ORDER BY m.created_at DESC LIMIT ?",
             arrayOf(limit.toString())
         ).use { c ->
             while (c.moveToNext()) rows.add(ChatSession(c.getString(0), c.getString(1), c.getLong(2), c.getInt(3)))
