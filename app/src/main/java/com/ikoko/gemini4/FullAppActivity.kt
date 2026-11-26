@@ -128,7 +128,7 @@ class FullAppActivity : Activity() {
             val root = base.trimEnd('/')
             val endpoint = when {
                 root.endsWith("/chat/completions") -> root
-                root.endsWith("/v1") -> "$root/chat/completions"
+                Regex("/v[0-9]+(\\.[0-9]+)?$").containsMatchIn(root) -> "$root/chat/completions"
                 else -> "$root/v1/chat/completions"
             }
             val msgs = JSONArray()
@@ -215,7 +215,7 @@ class FullAppActivity : Activity() {
     private fun fetchModels(base: String, key: String): List<String> {
         var conn: HttpURLConnection? = null
         return try {
-            val endpoint = if (base.endsWith("/v1")) "$base/models" else "$base/v1/models"
+            val endpoint = if (Regex("/v[0-9]+(\\.[0-9]+)?$").containsMatchIn(base)) "$base/models" else "$base/v1/models"
             conn = URL(endpoint).openConnection() as HttpURLConnection
             conn.connectTimeout = 15000
             conn.readTimeout = 20000
