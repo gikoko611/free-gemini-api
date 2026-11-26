@@ -1,6 +1,7 @@
 package com.ikoko.gemini4
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
@@ -169,9 +170,39 @@ class FullAppActivity : Activity() {
             Toast.makeText(this, "Saved. API key is encrypted on this device.", Toast.LENGTH_SHORT).show()
         })
         body.addView(space(8))
+        body.addView(action("LOAD API MODELS") {
+            val endpointBase = base.text.toString().trim().trimEnd('/')
+            val token = key.text.toString().trim()
+            io.execute {
+                val found = fetchModels(endpointBase, token)
+                runOnUiThread {
+                    if (found.isEmpty()) Toast.makeText(this, "No models found. Check URL, key and provider compatibility.", Toast.LENGTH_LONG).show()
+                    else AlertDialog.Builder(this).setTitle("Select API Model")
+                        .setItems(found.toTypedArray()) { _, index -> model.setText(found[index]) }.show()
+                }
+            }
+        })
+        body.addView(space(8))
         body.addView(action("OPEN GEMINI WEBSITE") { openGemini() })
         body.addView(space(8))
         body.addView(label("Hydrogen availability is controlled by Google Account plan, mode and quota. The Gemini Website login is not a public API key, so it is kept separate from this API client.", 12f, muted))
+    }
+
+    private fun fetchModels(base: String, key: String): List<String> {
+        var conn: HttpURLConnection? = null
+        return try {
+            val endpoint = if (base.endsWith("/v1")) "$base/models" else "$base/v1/models"
+            conn = URL(endpoint).openConnection() as HttpURLConnection
+            conn.connectTimeout = 15000
+            conn.readTimeout = 20000
+            if (key.isNotBlank()) conn.setRequestProperty("Authorization", "Bearer $key")
+            val code = conn.responseCode
+            if (code !in 200..299) return emptyList()
+            val raw = conn.inputStream.bufferedReader().use { it.readText() }
+            val data = JSONObject(raw).optJSONArray("data") ?: return emptyList()
+            (0 until data.length()).mapNotNull { data.optJSONObject(it)?.optString("id")?.takeIf { id -> id.isNotBlank() } }
+        } catch (_: Exception) { emptyList() }
+        finally { conn?.disconnect() }
     }
 
     private fun history() {
