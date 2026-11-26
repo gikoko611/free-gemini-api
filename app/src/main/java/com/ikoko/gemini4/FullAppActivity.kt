@@ -17,6 +17,8 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -66,7 +68,13 @@ class FullAppActivity : Activity() {
         root.addView(space(8))
         body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(body, LinearLayout.LayoutParams(-1, 0, 1f))
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(dp(16) + bars.left, dp(18) + bars.top, dp(16) + bars.right, dp(12) + bars.bottom)
+            insets
+        }
         setContentView(root)
+        ViewCompat.requestApplyInsets(root)
         chat()
     }
 
