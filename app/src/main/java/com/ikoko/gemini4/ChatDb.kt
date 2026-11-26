@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 data class ChatRow(val role: String, val content: String, val createdAt: Long)
+data class ChatSession(val sessionId: String, val lastMessage: String, val updatedAt: Long, val messageCount: Int)
 
 class ChatDb(context: Context) : SQLiteOpenHelper(context, "gikoko_gemini.db", null, 1) {
     override fun onCreate(db: SQLiteDatabase) {
@@ -26,6 +27,16 @@ class ChatDb(context: Context) : SQLiteOpenHelper(context, "gikoko_gemini.db", n
             while (c.moveToNext()) rows.add(ChatRow(c.getString(0), c.getString(1), c.getLong(2)))
         }
         return rows.asReversed()
+    }
+    fun sessions(limit: Int = 100): List<ChatSession> {
+        val rows = mutableListOf<ChatSession>()
+        readableDatabase.rawQuery(
+            "SELECT session_id, content, MAX(created_at), COUNT(*) FROM messages GROUP BY session_id ORDER BY MAX(created_at) DESC LIMIT ?",
+            arrayOf(limit.toString())
+        ).use { c ->
+            while (c.moveToNext()) rows.add(ChatSession(c.getString(0), c.getString(1), c.getLong(2), c.getInt(3)))
+        }
+        return rows
     }
     fun history(limit: Int = 100): List<ChatRow> {
         val rows = mutableListOf<ChatRow>()
