@@ -247,8 +247,8 @@ class FullAppActivity : Activity() {
         if (sessions.isEmpty()) list.addView(label("No conversations yet.", 14f, muted))
         sessions.forEach { item ->
             val date = SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()).format(Date(item.updatedAt))
-            val preview = item.lastMessage.replace("\\n", " ").take(72)
-            list.addView(action("${date}  •  ${item.messageCount} messages\\n${preview}") {
+            val preview = item.lastMessage.replace("\n", " ").take(72)
+            list.addView(action("\${date}  •  \${item.messageCount} messages\n\${preview}") {
                 session = item.sessionId
                 prefs.edit().putString("active_session", session).apply()
                 chat()
