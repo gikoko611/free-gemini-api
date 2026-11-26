@@ -183,6 +183,29 @@ class FullAppActivity : Activity() {
             }
         })
         body.addView(space(8))
+        body.addView(action("TEST API CONNECTION") {
+            val endpointBase = base.text.toString().trim().trimEnd('/')
+            val token = key.text.toString().trim()
+            val selectedModel = model.text.toString().trim()
+            if (endpointBase.isBlank() || selectedModel.isBlank()) {
+                Toast.makeText(this, "Enter Base URL and Model ID first.", Toast.LENGTH_LONG).show()
+            } else {
+                io.execute {
+                    val found = fetchModels(endpointBase, token)
+                    runOnUiThread {
+                        val matched = found.any { it == selectedModel }
+                        val message = when {
+                            found.isEmpty() -> "Could not verify. Check URL, API key and /models support."
+                            matched -> "Connected. Model found: $selectedModel"
+                            else -> "Provider reachable: ${found.size} model(s), but selected model was not listed. Verify its exact ID."
+                        }
+                        AlertDialog.Builder(this).setTitle("G.I API Test").setMessage(message)
+                            .setPositiveButton("OK", null).show()
+                    }
+                }
+            }
+        })
+        body.addView(space(8))
         body.addView(action("OPEN GEMINI WEBSITE") { openGemini() })
         body.addView(space(8))
         body.addView(label("Hydrogen availability is controlled by Google Account plan, mode and quota. The Gemini Website login is not a public API key, so it is kept separate from this API client.", 12f, muted))
