@@ -30,7 +30,7 @@ class MainActivity : Activity() {
     private fun buildHome(): View {
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(background)
+            setBackgroundColor(this@MainActivity.background)
             setPadding(dp(22), dp(30), dp(22), dp(24))
         }
 
