@@ -39,7 +39,7 @@ class FullAppActivity : Activity() {
     private lateinit var body: LinearLayout
     private lateinit var transcript: LinearLayout
     private lateinit var input: EditText
-    private var session = UUID.randomUUID().toString()
+    private var session = ""
     private val prefs by lazy { getSharedPreferences("gikoko_settings", MODE_PRIVATE) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,6 +48,7 @@ class FullAppActivity : Activity() {
         window.navigationBarColor = bg
         db = ChatDb(this)
         secrets = SecretStore(this)
+        session = prefs.getString("active_session", null) ?: UUID.randomUUID().toString().also { prefs.edit().putString("active_session", it).apply() }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(bg)
@@ -91,7 +92,7 @@ class FullAppActivity : Activity() {
         }
         body.addView(input, LinearLayout.LayoutParams(-1, -2))
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        row.addView(action("＋ NEW CHAT") { session = UUID.randomUUID().toString(); chat() }, weight())
+        row.addView(action("＋ NEW CHAT") { session = UUID.randomUUID().toString(); prefs.edit().putString("active_session", session).apply(); chat() }, weight())
         row.addView(action("SEND  ➤") { send() }, weight())
         body.addView(row)
     }
@@ -230,14 +231,21 @@ class FullAppActivity : Activity() {
 
     private fun history() {
         body.removeAllViews()
-        body.addView(label("LOCAL CHAT HISTORY", 18f, gold, true))
+        body.addView(label("CHAT HISTORY", 18f, gold, true))
+        body.addView(label("Select a conversation to continue where you left off.", 12f, muted))
         val scroll = ScrollView(this)
         val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(4, 8, 4, 8) }
-        db.history(100).forEach {
-            val date = SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()).format(Date(it.createdAt))
-            list.addView(label("${it.role.uppercase(Locale.getDefault())}  •  $date", 11f, gold, true))
-            list.addView(label(it.content, 14f, ink))
-            list.addView(space(10))
+        val sessions = db.sessions(100)
+        if (sessions.isEmpty()) list.addView(label("No conversations yet.", 14f, muted))
+        sessions.forEach { item ->
+            val date = SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()).format(Date(item.updatedAt))
+            val preview = item.lastMessage.replace("\\n", " ").take(72)
+            list.addView(action("${date}  •  ${item.messageCount} messages\\n${preview}") {
+                session = item.sessionId
+                prefs.edit().putString("active_session", session).apply()
+                chat()
+            })
+            list.addView(space(8))
         }
         scroll.addView(list)
         body.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
