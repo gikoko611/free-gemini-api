@@ -116,21 +116,27 @@ class FullAppActivity : Activity() {
             settings(); return
         }
         input.setText("")
-        db.add(session, "user", prompt)
+        val activeSession = session
+        val activeTranscript = transcript
+        db.add(activeSession, "user", prompt)
         bubble("user", prompt)
         val wait = label("G.I is thinking…", 13f, gold)
-        transcript.addView(wait)
+        activeTranscript.addView(wait)
         io.execute {
-            val answer = complete(base, model, key)
+            val answer = complete(base, model, key, activeSession)
             runOnUiThread {
-                transcript.removeView(wait)
-                if (answer.startsWith("!ERR!")) bubble("error", answer.removePrefix("!ERR!"))
-                else { db.add(session, "assistant", answer); bubble("assistant", answer) }
+                activeTranscript.removeView(wait)
+                if (answer.startsWith("!ERR!")) {
+                    if (session == activeSession) bubble("error", answer.removePrefix("!ERR!"))
+                } else {
+                    db.add(activeSession, "assistant", answer)
+                    if (session == activeSession) bubble("assistant", answer)
+                }
             }
         }
     }
 
-    private fun complete(base: String, model: String, key: String): String {
+    private fun complete(base: String, model: String, key: String, activeSession: String): String {
         var conn: HttpURLConnection? = null
         return try {
             val root = base.trimEnd('/')
@@ -140,7 +146,7 @@ class FullAppActivity : Activity() {
                 else -> "$root/v1/chat/completions"
             }
             val msgs = JSONArray()
-            db.recent(session, 30).forEach { msgs.put(JSONObject().put("role", it.role).put("content", it.content)) }
+            db.recent(activeSession, 30).forEach { msgs.put(JSONObject().put("role", it.role).put("content", it.content)) }
             val payload = JSONObject().put("model", model).put("messages", msgs)
             conn = URL(endpoint).openConnection() as HttpURLConnection
             conn.requestMethod = "POST"; conn.connectTimeout = 20000; conn.readTimeout = 90000
